@@ -1,0 +1,23 @@
+# Existing packaging checkout and local package output
+/PKGBUILDs/
+/z96a-niri-profile/
+*.pkg.tar.*
+
+# Raw device captures and local backups
+*.log
+*.log.*
+/local/
+/backups/
+*.img
+*.img.*
+*.dtb
+
+# Original screenshot (published copy is under docs/assets)
+/z96a-github-actions-enabled.jpg
+
+# Local configuration and credentials
+.env
+.env.*
+*.key
+*.pem
+*.p12
