@@ -4,6 +4,7 @@
 
 - 源码、CI、启动验证和回退路径见[开发说明](docs/development.md)。
 - VOP 时钟故障、RK809 时钟绑定与 SDIO 枚举见 [2026-11-24 BSP 6.1 调试记录](logs/2026-11-24-bsp61.md)。
+- 根分区一次性启动、时钟自动绑定与 RTL8822CS Wi-Fi 验证见 [2026-11-25 BSP 上板验收](logs/2026-11-25-bsp61.md)。
 - 本地 `PKGBUILDs/` 是打包仓库的独立检出。打包源码和 CI 位于 [Sakurapainting/PKGBUILDs 的 `z96a-niri` 分支](https://github.com/Sakurapainting/PKGBUILDs/tree/z96a-niri)。
 
 ## 添加记录
