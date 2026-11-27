@@ -46,7 +46,7 @@ Actions `45747812441` 的 `flash-image` 成功。`z96a-rockchip-flash-image-niri
 
 eMMC 前后各 128 个扇区均原样保存。主 GPT 与此前已验收的 128 扇区备份逐字节一致，p9/p10 起始 LBA `0x2E800`/`0xAE800` 与 Linux 一致；盘尾 GPT 的 CRC 独立有效，但 GUID 和分区布局与主 GPT 不一致，不能按盘尾 GPT 恢复。本次仅备份 BOOT/ROOT 和 GPT 区域，不是整盘原厂恢复镜像。
 
-正常热重启后，实机 boot ID `5e4e8a06-a29d-49b5-8537-e354490cd15f`，仍使用默认 `6.1.172-8-z96a-bsp61`，SDDM active，eDP connected/enabled、1920×1080。临时网络和 SSH 文件已消失，`sshd.service` inactive；未改密码。RKNN Runtime 2.3.2 / 驱动 0.9.8，3 秒 4,845 次，每次比对 14,400 个值，最大绝对误差 0。
+正常热重启后，实机仍使用默认 `6.1.172-8-z96a-bsp61`，SDDM active，eDP connected/enabled、1920×1080。临时网络和 SSH 文件已消失，`sshd.service` inactive；未改密码。RKNN Runtime 2.3.2 / 驱动 0.9.8，3 秒 4,845 次，每次比对 14,400 个值，最大绝对误差 0。
 
 旧备份 `backup-before-flash/` 再次通过原 SHA-256 清单。含旧主线恢复入口及新备份不能替代的旧用户目录，原件保留。`zstd -1 -T2` 实测 BOOT/ROOT 共 12,837,459,859 字节（约 11.96 GiB），比原始约 29.03 GiB 少约 17.07 GiB。需要释放空间时，建议先另写压缩档并验证解压后逐镜像 SHA-256，再决定移除旧的裸镜像；本次未移除任何备份。
 
@@ -68,8 +68,8 @@ eMMC 前后各 128 个扇区均原样保存。主 GPT 与此前已验收的 128 
 - 首启时实机 SDDM 在 `/etc/passwd` 新增 `alarm` 之前启动，现场报登录界面的用户列表为空。UART 确认 `alarm`（UID 1000、`/bin/bash`）有可用密码，且 SDDM 账号可经 NSS 查到该用户，没有隐藏用户配置。确认没有已登录的图形会话后仅重启 `sddm.service`（未重启整机、未改密码），前台 greeter 从 `c1` 切换到 `c5`，eDP 仍为 `connected/enabled`。记录 `local/bsp-release/flash-45747812441/sddm-user-refresh.log`；屏幕用户卡片仍待现场确认。
 - 用户确认进入桌面。UART 验证 `alarm` 为 `seat0` 前台 Niri Wayland 会话；Niri 打开 Rockchip DRM `card0` 和 Panfrost `renderD129`，内屏 BOE `eDP-1` 运行首选 1920×1080 @ 60.024 Hz、缩放 1.25，VOP VP1 用 XR24 扫描。保留桌面前台时 RKNN 自检 5 秒通过 8,045 次，每次比对 14,400 个值，最大误差 0；IRQ 33 从 8,156 增至 16,201（增量 8,045），采样负载 9%–11%，窗口内无新增内核消息。记录 `local/bsp-release/flash-45747812441/niri-session-acceptance.log`。面板肉眼色彩和该镜像的断电冷启尚未复验。
 - 用户现场确认新镜像登录 Niri 后内屏显示正常。至此 USB 烧录、默认 BSP 首启、Niri/Panfrost、内屏画面和桌面运行时 RKNN 推理均通过。本轮未再次重启，独立 Niri 镜像的断电冷启未做。
-- 开始独立 Niri 镜像的关机再开机验收。用户保存工作并确认可以关机后，通过 UART 执行 `systemctl poweroff`；BOOT 与 ROOT 正常卸载，内核最后报告 `reboot: Power down`。关机前 boot ID `fe591a03-150b-4a03-9644-63bdcee447b4`。板子停在关机状态，等待重新接电开机。记录 `local/bsp-release/flash-45747812441/coldboot-poweroff.log`。
-- 用户按长按再短按开机并报告已进入 Niri 桌面。串口随后恢复响应，确认此次断电冷启 boot ID `42a20699-8dc6-494e-88e6-3f90a9cadacc`，默认 `6.1.172-8-z96a-bsp61`（root=`PARTLABEL=ROOT`），SDDM / graphical.target active 且 SDDM enabled；`seat0` 为 `alarm` 的活动 Niri Wayland 会话，eDP `connected/enabled`、1920×1080。保持桌面运行做第二次冷启后 RKNN 自检：5 秒通过 8,766 次，每次 14,400 个输出最大误差为 0；IRQ 33 增量 8,766，采样负载 5%，窗口内无新增内核消息。冷启日志 `local/bsp-release/flash-45747812441/coldboot-login-probe.log`、推理日志 `coldboot-test.log`。独立 Niri 镜像的断电冷启动验收通过。
+- 开始独立 Niri 镜像的关机再开机验收。用户保存工作并确认可以关机后，通过 UART 执行 `systemctl poweroff`；BOOT 与 ROOT 正常卸载，内核最后报告 `reboot: Power down`。板子停在关机状态，等待重新接电开机。记录 `local/bsp-release/flash-45747812441/coldboot-poweroff.log`。
+- 用户按长按再短按开机并报告已进入 Niri 桌面。串口随后恢复响应，确认断电冷启后运行默认 `6.1.172-8-z96a-bsp61`（root=`PARTLABEL=ROOT`），SDDM / graphical.target active 且 SDDM enabled；`seat0` 为 `alarm` 的活动 Niri Wayland 会话，eDP `connected/enabled`、1920×1080。保持桌面运行做第二次冷启后 RKNN 自检：5 秒通过 8,766 次，每次 14,400 个输出最大误差为 0；IRQ 33 增量 8,766，采样负载 5%，窗口内无新增内核消息。冷启日志 `local/bsp-release/flash-45747812441/coldboot-login-probe.log`、推理日志 `coldboot-test.log`。独立 Niri 镜像的断电冷启动验收通过。
 
 ## LBA0 镜像登录 Niri 后内屏黑屏
 

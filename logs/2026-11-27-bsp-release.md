@@ -4,7 +4,7 @@
 
 ## `6.1.172-9` 构建验收
 
-- `Sakurapainting/PKGBUILDs` 的 `z96a-bsp-niri-image` 分支提交 `5e89e8c09bb7792b6a0f825ce5e475c7562cbd46` 自动触发 Actions `45810214611`；`build`、`flash-image` 均通过。`6.1.172-9` 已把平面分配写入板级 DTS，包和最终镜像均检查 DTB，ROOT 检查桌面模板和 `alarm` 的 Niri 配置。已上传 BSP 包、BSP 补丁包、`z96a-rockchip-flash-image-niri`（BOOT/ROOT）和 `z96a-rockchip-flash-image-niri-lba0`（从 LBA0 写入，两版镜像均含 `.img.xz`）。
+- `Sakurapainting/PKGBUILDs` 的 `z96a-bsp-niri-image` 分支的 Actions `45810214611`。该运行由提交 `5e89e8c09bb7792b6a0f825ce5e475c7562cbd46` 触发，`build` 和 `flash-image` 均通过。`6.1.172-9` 已把平面分配写入板级 DTS，包和最终镜像均检查 DTB，ROOT 检查桌面模板和 `alarm` 的 Niri 配置。已上传 BSP 包、BSP 补丁包、`z96a-rockchip-flash-image-niri`（BOOT/ROOT）和 `z96a-rockchip-flash-image-niri-lba0`（从 LBA0 写入，两版镜像均含 `.img.xz`）。
 
 ## `6.1.172-9` LBA0 烧录、启动故障与恢复
 
@@ -16,3 +16,19 @@
 - 11:14（北京时间），用户长按再短按后串口捕获到 DDR、U-Boot 及 eMMC 默认 extlinux 的完整启动前段；默认正式 DTB 的 `-9` 同样在 `rk_iommu_driver_init` 对 NPU 电源域退出 idle 等待 ACK 失败、随后 panic。故障不只发生在从 Rockusb 直接引导时；此现象解释了本次电源键操作后内屏无画面。默认失败串口：`local/flash-stage/flash-45810214611/panic-default-autoboot-uart.log`。对比镜像内正式 DTB 与前一轮成功的 Smart0 试启 DTB 的 1,017 个节点，节点名及所有属性值一致；不能将该 panic 归因于平面分配本身。现已提前挂起启动拦截，等下一次物理复位使用 NPU 禁用 DTB；尚未重刷或改写启动项。
 - 用户再次长按后短按，UART 截获 U-Boot。通过 BOOT 中自带的 `z96a-bsp61-recovery.dtb` 启动同一套 `-9` 内核和 initramfs，进入 `ro,norecovery` 的 ROOT 维护 shell。整盘回读 SHA-256 为 `26a468e239f9465d830f0e48eef34f0ca2133799357ba735a7e995bbda833d00`，与原镜像不同。写后曾通过 USB 逐字节核对盘头 32 MiB。重启后，盘头变化定位到 `misc` 分区的 LBA 32772（110 个字节），其余盘头分段、BOOT、原始 ROOT 镜像范围之后的内容和备份 GPT 校验一致。ROOT 镜像范围的 SHA-256 也改变了。维护引导仍在挂载只读 ROOT 前运行了 initramfs 的文件系统检查，且已读到 ext4 超级块字段和校验和变化。后续使用 `e2fsck -fn` 检查 ROOT 通过（退出码 0）。这次回读未达到整盘逐字节验收。后续应在 USB 重启前完成整盘回读，或使用 `fsck.mode=skip` 控制只读验收引导中的检查，并单独记录固件对 `misc` 的改动。
 - 通过 UART 从维护环境重启后拦截 U-Boot，逐一复核 `Image`、`initramfs.img`、恢复 DTB 的 CRC32，做了一次可写图形启动。首启 ROOT ext4 扩容完成，`6.1.172-9-z96a-bsp61` 的 SDDM 和 `graphical.target` 已启动，eDP 已启用并设置为 1920×1080，VP1 使用 Smart0。串口以预设 `alarm` 账户登录成功，确认 Niri 配置中 `Mod+Return` 和 `Mod+T` 都启动 Foot。本次恢复使用的设备树禁用了 NPU，eMMC 上的默认 extlinux 项仍会加载启用 NPU 的正式 DTB。此次恢复启动尚未现场确认屏幕和 Niri 快捷键。串口实录和命令回执见 `local/flash-stage/flash-45810214611/graphical-recovery-uart.log` 和 `recovery-live-probe.log`。
+
+## `6.1.172-10` NPU 上电修复
+
+- 在 `-9` 的恢复环境中，内核报告 `vdd_npu` 为 500 mV。`-10` 将 RK809 DCDC_REG4 的下限提高到 NPU 最低工作点所需的 850 mV，并让电源域控制器在 NPU IOMMU 接入前准备这路供电。保留 `movablecore=256M`、NPU 600 MHz 上限和禁用 NPU 的恢复项。构建版本和发布附件见 [6.1.172-10 发布说明](../docs/releases/z96a-bsp-v6.1.172-10.md)。
+
+## `6.1.172-10` 整盘烧录与冷启动验收
+
+- 写入 Actions `45936151382` 的 Niri LBA0 镜像后，USB 回读前 32 MiB 与原镜像一致。先在 U-Boot 核对 `misc` 扇区 CRC，再一次性启动正式 `-10` DTB，使用 `ro rootflags=noload fsck.mode=skip` 跳过维护引导中的文件系统检查和日志回放。正常首启前从板上计算整个 eMMC 的 SHA-256，与原镜像的 `18eb4abbd7b9a6a84f91670ccdb72a87b565447379a4595f504e373a71c0113b` 一致。
+- 正常首启从 eMMC 默认加载 `6.1.172-10-z96a-bsp61`，进入 SDDM，内屏为 1920×1080，VP1 使用 Smart0。RKNN FP16 卷积 15 秒通过 26,878 次，每次 14,400 个输出与 CPU 参考一致，中断计数增加 26,878。
+- 关机后按键冷启动复验通过，确认进入 Niri Wayland 会话，内屏 1920×1080 @ 60.024 Hz。另一次默认冷启动使用临时的单次自检服务，15 秒通过 24,923 次，最大误差为 0，中断增量与次数一致。检查确认服务和定时器已移除，`/dev/rknpu` 保持 `0600 root:root`。
+- 原始证据保存在 `local/flash-stage/flash-45936151382/`，关键记录为 `verify-readonly.log`、`accept-flashed.log`、`coldboot-niri-session.log` 和 `cold-rknn-default-boot.uart.log`。
+
+## 电量接口与串口排查
+
+- `-10` 启动时 `/sys/class/power_supply` 为空，板级设备树未启用 SC8886 充电芯片驱动。当前 Linux 无法读取电量百分比。
+- 主机发现后台 UART 日志采集和 `picocom` 同时读取同一串口，已停止旧采集。Linux 串口控制台为 `ttyS0`，使用 1500000 波特、8N1、无流控。
