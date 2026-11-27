@@ -132,10 +132,4 @@ CI 在 ARM64 rootfs 运行了 `fastfetch --version` 和自检帮助，并验证�
 
 用户要求暂停并拆线。确认无烧录或后续验收进程后，在只读环境执行 `sync` 和 SysRq poweroff，UART 返回 `reboot: Power down`（`local/bsp-release/flash-45584762782/pause-poweroff-uart.log`）。明天接回电源和 UART，拦截 U-Boot 自动启动，以相同临时参数进入只读环境。先用 `/proc/self/mountinfo` 的设备号字段核对 ROOT，校验从 LBA `0x2E800` 开始的 4,026,531,840 字节 SHA-256 为 `7bfa8a4cc214e81582db81d24feb9b526be09b6d93e958c3ae98c5036a6b56ff`；通过后再放行默认 BSP 首启，运行镜像内的 `z96a-rknn-selftest`，检查推理结果、NPU 负载、IRQ 和内核报错。若已正常首启，ROOT 扩容会改变原始字节，不能将此后的原始整段哈希当作烧录前镜像的回读校验。现有系统的完整备份已验收并保留。
 
-## 2026-11-26 烧录与 RKNPU 实机验收
-
-- 只接 UART 和电源，拦截原厂 U-Boot。用新 BOOT 的 Image 和 DTB 进入一次性只读环境，ROOT 挂载为 `ro,norecovery`，首启与扩容尚未发生。设备号守卫改用 `/proc/self/mountinfo` 的第三列消除 `findmnt` 输出末尾的空白。实机读取从 LBA `0x2E800` 开始的 4,026,531,840 字节，SHA-256 `7bfa8a4cc214e81582db81d24feb9b526be09b6d93e958c3ae98c5036a6b56ff`，与 Actions `45588703349` 原始镜像一致。前 128 LBA 的 SHA-256 仍为 `a0d29abc580751d3bf7a2756e27e6062ec30960206cff25b12f424fa970459f0`。未重复烧录。记录在 `local/bsp-release/flash-45584762782/usb-write-verified`。
-- 完成正常首启并通过 UART 登录。extlinux 默认项 `linux-bsp61` 启动 `6.1.172-8-z96a-bsp61`，实际内核命令行带 `movablecore=256M`；NPU-disabled BSP 恢复项保留。ROOT 扩容后 `findmnt` 报告 28.2 GiB，BOOT 依旧是 `/dev/mmcblk0p9`。boot ID `862d5743-ca38-4931-b8ec-0d481850c010`。
-- `/dev/rknpu` 存在，`fde40000.npu` 绑定 RKNPU，IOMMU group 0。镜像自带 RKNN Runtime `2.3.2`、驱动 `0.9.8`。FP16 卷积自检分别跑 5、5、15 秒，成功 8,192、8,238、26,422 次，共 42,852 次，每次 14,400 个值与 CPU 参考逐项比对，三个窗口的最大绝对误差均为 `0.000000`。
-- 15 秒测试中与 NPU 共用的 IRQ 33 从 16,430 增至 42,852，增量与推理次数相同。测试期间采到 NPU 负载 5%–10%，每次测试窗口没有新增内核消息，空闲后 `runtime_status=suspended`。启动探测仍有此前记录的按名称查找 `npu_irq` 失败，实际走按索引绑定的中断。测试日志为 `firstboot-acceptance-20261126.log`、`rknn-irq-acceptance-20261126.log`，位于 `local/bsp-release/flash-45584762782/`。
-- 板子留在新系统运行。未重新验证桌面、eDP 画面或外围。本机首启生成的 root 密码保存在该阶段目录下的 `firstboot-root-password`，文件权限为 `0600`，不写入日志、不提交。
+首次正常启动前的回读校验，以及后续 NPU 自检和 Niri 验收见 [11 月 26 日记录](2026-11-26-bsp-release.md)。
